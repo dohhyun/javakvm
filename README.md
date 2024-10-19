@@ -1,0 +1,3 @@
+Inspired by Control3: https://github.com/sipper69/Control3
+
+Written in Java instead...
