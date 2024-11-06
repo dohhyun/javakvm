@@ -1,4 +1,4 @@
-package javacapturecard.app;
+package com.javacapturecard.app;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
