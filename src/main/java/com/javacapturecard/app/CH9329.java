@@ -5,6 +5,8 @@
 package com.javacapturecard.app;
 
 import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortDataListener;
+import com.fazecast.jSerialComm.SerialPortEvent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,12 +14,13 @@ import java.util.List;
 import java.util.Map;
 
 
-public class ch9329 {
+public class CH9329 {
     public String portName;
     public int baudRate;
     public int xRes;
     public int yRes;
     public SerialPort serialPort;
+    public boolean detectConnection = false;
 
     public byte CHIP_VERSION;
     public byte CHIP_STATUS;
@@ -30,11 +33,11 @@ public class ch9329 {
     Map<mediaKeys, byte[]> mediaKeyMap;
     
 
-    public ch9329() {
-        this("COM5",1920,1080,9600);
+    public CH9329() {
+        this("ttyS4",1920,1080,9600);
     }
 
-    public ch9329(String portName, int xRes, int yRes, int baudRate) {
+    public CH9329(String portName, int xRes, int yRes, int baudRate) {
         this.portName = portName;
         this.xRes = xRes;
         this.yRes = yRes;
@@ -49,6 +52,29 @@ public class ch9329 {
         } else {
             System.out.println("Port Not Open");
         }
+
+        serialPort.addDataListener(new SerialPortDataListener() {
+            @Override
+            public int getListeningEvents() {
+                // Listen for data available event
+                return SerialPort.LISTENING_EVENT_DATA_AVAILABLE;
+            }
+
+            @Override
+            public void serialEvent(SerialPortEvent event) {
+                if (event.getEventType() == SerialPort.LISTENING_EVENT_DATA_AVAILABLE) {
+                    byte[] buffer = new byte[serialPort.bytesAvailable()];
+                    int numRead = serialPort.readBytes(buffer, buffer.length);
+
+                    // Convert buffer to string or process data as needed
+                    String receivedData = new String(buffer, 0, numRead);
+                    System.out.println("Received Data: " + receivedData);
+                    detectConnection = true;
+                }
+            }
+        });
+
+        System.out.println("Listening for data on " + serialPort.getSystemPortName());
 
         createKeyMap();
         createMediaKeyMap();
@@ -328,5 +354,20 @@ public class ch9329 {
         t.start();
 
         return s;
+    }
+
+    public static void main(String[] args) {
+        CH9329 ch9329 = new CH9329();
+
+        SerialPort[] ports = SerialPort.getCommPorts();
+        for (SerialPort port : ports) {
+            String portDescription = port.getDescriptivePortName().toLowerCase();
+            System.out.println("Checking port: " + port.getSystemPortName() + " - " + portDescription);
+            System.out.println(port.getSystemPortName());
+            // Check for device-specific keywords or identifiers in the port description
+            if (portDescription.contains("ch9329") || portDescription.contains("tty")) {
+                System.out.println(port.getSystemPortName());
+            }
+        }
     }
 }
