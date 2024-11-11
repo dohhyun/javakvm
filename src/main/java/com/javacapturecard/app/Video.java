@@ -16,18 +16,18 @@ import javafx.embed.swing.SwingFXUtils;
 
 public class Video {
     private boolean isRunning = false;
-    static String s = "";
     public static List<Integer> detectVideoSources() {
         List<Integer> videoSources = new ArrayList<>();
 
 
-        for (int i = 0; i < 1; i++) {
+        for (int i = 4; i < 5; i++) {
             try (OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(i)) {
                 grabber.start();
-                s = grabber.getFormat();
+
                 videoSources.add(i);
-                grabber.stop();
+
             } catch (FrameGrabber.Exception e) {
+                System.out.println("Device index " + i + " is not available.");
 
             }
         }
@@ -61,7 +61,6 @@ public class Video {
     public static void main(String[] args) {
         List<Integer> l = detectVideoSources();
         System.out.println(l);
-        System.out.println(s);
     }
 
     public boolean isRunning() {

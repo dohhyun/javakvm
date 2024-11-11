@@ -40,6 +40,7 @@ public class Application extends javafx.application.Application {
         cb.setTranslateY(SCENE_HEIGHT/2-100-cb.getBoundsInLocal().getHeight()/2);
         cb.setPrefWidth(150);
 
+
         root.getChildren().add(cb);
 
 
@@ -77,7 +78,7 @@ public class Application extends javafx.application.Application {
     private void openDisplayWindow(Video video) {
         video.setRunning(true);
         Stage videoWindow = new Stage();
-        videoWindow.setTitle("JavaCaptureCard");
+        videoWindow.setTitle("Video Display");
 
         StackPane g = new StackPane();
 
