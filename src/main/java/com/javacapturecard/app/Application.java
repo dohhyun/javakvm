@@ -18,8 +18,8 @@ public class Application extends javafx.application.Application {
     private static final int SCENE_WIDTH = 600;
     private static final int SCENE_HEIGHT = 250;
 
-    private static final int DISPLAY_WIDTH = 1280;
-    private static final int DISPLAY_HEIGHT = 720;
+    private static final int DISPLAY_WIDTH = 1920;
+    private static final int DISPLAY_HEIGHT = 1080;
 
 
     @Override
@@ -77,33 +77,7 @@ public class Application extends javafx.application.Application {
 
     private void openDisplayWindow(Video video) {
         video.setRunning(true);
-        Stage videoWindow = new Stage();
-        videoWindow.setTitle("Video Display");
-
-        StackPane g = new StackPane();
-
-        ImageView iv = new ImageView();
-
-        iv.setFitWidth(DISPLAY_WIDTH);
-        iv.setFitHeight(DISPLAY_HEIGHT);
-        new Thread(() -> {
-            video.displayVideo(iv);
-
-        }).start();
-        videoWindow.setOnCloseRequest(event -> {
-            video.setRunning(false);
-            System.out.println("Closed Video!");
-        });
-
-        g.getChildren().add(iv);
-        videoWindow.setScene(new Scene(g, DISPLAY_WIDTH, DISPLAY_HEIGHT));
-        videoWindow.show();
-
-
-
-
-
-
+        new Thread(video::displayVideo).start();
     }
 
     public static void main(String[] args) {

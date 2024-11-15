@@ -2,65 +2,66 @@ package com.javacapturecard.app;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import javafx.application.Platform;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import org.bytedeco.javacv.Frame;
-import org.bytedeco.javacv.FrameGrabber;
-import org.bytedeco.javacv.Java2DFrameConverter;
-import org.bytedeco.javacv.OpenCVFrameGrabber;
+import org.bytedeco.javacv.*;
 import javafx.embed.swing.SwingFXUtils;
 
 
 public class Video {
     private boolean isRunning = false;
-    public static List<Integer> detectVideoSources() {
-        List<Integer> videoSources = new ArrayList<>();
+    private static final int VIDEO_WIDTH = 1920;
+    private static final int VIDEO_HEIGHT = 1080;
+    public HashMap<Integer, String> videoSourceMap;
 
+    public static HashMap<Integer, String> detectVideoSources() {
+        HashMap<Integer, String> videoSourceMap = new HashMap<>();
 
-        for (int i = 4; i < 5; i++) {
-            try (OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(i)) {
-                grabber.start();
-
-                videoSources.add(i);
-
-            } catch (FrameGrabber.Exception e) {
-                System.out.println("Device index " + i + " is not available.");
-
-            }
-        }
-
-        return videoSources;
     }
 
-    public void displayVideo(ImageView imageView) {
+    public void displayVideo() {
 
-        try (OpenCVFrameGrabber grabber =  new OpenCVFrameGrabber(0)) {
+        try (FFmpegFrameGrabber grabber = new FFmpegFrameGrabber("/dev/video4")) {
+            grabber.setFormat("v4l2");
+            grabber.setOption("input_format", "yuv420p");
+            grabber.setOption("rtbufsize", "64M");
+            grabber.setFrameRate(30);
+            grabber.setImageWidth(VIDEO_WIDTH);
+            grabber.setImageHeight(VIDEO_HEIGHT);
+
+
             grabber.start();
 
-            Java2DFrameConverter converter = new Java2DFrameConverter();
+            CanvasFrame canvas = new CanvasFrame("Display", CanvasFrame.getDefaultGamma() / grabber.getGamma());
+            // Set a custom close operation
+            canvas.setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE);
+            canvas.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosing(java.awt.event.WindowEvent e) {
+                    isRunning = false;
+                    System.out.println("CanvasFrame closed, stopping video capture.");
+                }
+            });
 
-            while (isRunning) {
+            while (isRunning && canvas.isVisible()) {
                 Frame frame = grabber.grab();
                 if (frame != null) {
-                    BufferedImage bufferedImage = converter.convert(frame);
-                    Image image = SwingFXUtils.toFXImage(bufferedImage, null);
-
-                    Platform.runLater(() -> imageView.setImage(image));
+                    canvas.showImage(frame);
                 }
             }
 
             grabber.stop();
+            canvas.dispose();
         } catch (FrameGrabber.Exception e) {
             e.printStackTrace();
         }
     }
 
     public static void main(String[] args) {
-        List<Integer> l = detectVideoSources();
-        System.out.println(l);
     }
 
     public boolean isRunning() {
