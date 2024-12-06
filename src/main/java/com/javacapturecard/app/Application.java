@@ -1,6 +1,9 @@
 package com.javacapturecard.app;
 
 import com.fazecast.jSerialComm.SerialPort;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -22,10 +25,29 @@ public class Application extends javafx.application.Application {
     private static final int DISPLAY_HEIGHT = 1080;
 
 
+
+
     @Override
     public void start(Stage stage) throws IOException {
         CH9329 connection = new CH9329();
         Video video = new Video();
+
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("windows")) {
+            video.setOperatingSystem("Windows");
+
+        } else if (os.contains("nux")) {
+            video.setOperatingSystem("Linux");
+
+
+        } else if (os.contains("mac")) {
+            video.setOperatingSystem("Mac");
+
+        } else {
+            video.setOperatingSystem("Unknown");
+            System.err.println("Unsupported operating system: " + os);
+            return;
+        }
 
         stage.setTitle("JavaCaptureCard");
         Group root = new Group();
@@ -35,10 +57,24 @@ public class Application extends javafx.application.Application {
         root.getChildren().add(pane);
 
 
-        ComboBox cb = new ComboBox();
-        cb.setTranslateX(SCENE_WIDTH/2-90-cb.getBoundsInLocal().getWidth()/2);
+        ObservableList<VideoDevice> videoSources = FXCollections.observableArrayList();
+
+        ComboBox<VideoDevice> cb = new ComboBox<>(videoSources);
+        cb.setTranslateX(SCENE_WIDTH/2-200-cb.getBoundsInLocal().getWidth()/2);
         cb.setTranslateY(SCENE_HEIGHT/2-100-cb.getBoundsInLocal().getHeight()/2);
-        cb.setPrefWidth(150);
+        cb.setPrefWidth(400);
+        video.detectVideoSources();
+        videoSources.addAll(video.getVideoDevices());
+
+        videoSources.forEach(System.out::println);
+
+
+        videoSources.addListener((ListChangeListener<? super VideoDevice>) change -> {
+            if (change.wasAdded()) {
+                videoSources.clear();
+                videoSources.addAll(change.getAddedSubList());
+            }
+        });
 
 
         root.getChildren().add(cb);
@@ -52,7 +88,12 @@ public class Application extends javafx.application.Application {
         root.getChildren().add(button);
         button.setOnAction(actionEvent -> {
             if (!video.isRunning()) {
-                openDisplayWindow(video);
+                if (cb.getValue() != null) {
+                    System.out.println("Selected: " + cb.getValue());
+                    openDisplayWindow(video, cb.getValue());
+                } else {
+                    System.out.println("You have selected nothing!");
+                }
             }
 
         });
@@ -75,9 +116,9 @@ public class Application extends javafx.application.Application {
         stage.show();
     }
 
-    private void openDisplayWindow(Video video) {
-        video.setRunning(true);
-        new Thread(video::displayVideo).start();
+    private void openDisplayWindow(Video video, VideoDevice videoDevice) {
+
+        new Thread(() -> video.displayVideo(videoDevice)).start();
     }
 
     public static void main(String[] args) {

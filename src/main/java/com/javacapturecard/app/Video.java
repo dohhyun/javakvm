@@ -1,37 +1,37 @@
 package com.javacapturecard.app;
 
-import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
-import javafx.application.Platform;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import org.bytedeco.javacv.*;
-import javafx.embed.swing.SwingFXUtils;
 
 
 public class Video {
     private boolean isRunning = false;
-    private static final int VIDEO_WIDTH = 1920;
-    private static final int VIDEO_HEIGHT = 1080;
-    public HashMap<Integer, String> videoSourceMap;
+    private static final int VIDEO_WIDTH = 1280;
+    private static final int VIDEO_HEIGHT = 720;
+    private String operatingSystem;
+    public ArrayList<VideoDevice> videoDevices = new ArrayList<>();
 
-    public static HashMap<Integer, String> detectVideoSources() {
-        HashMap<Integer, String> videoSourceMap = new HashMap<>();
+    public void displayVideo(VideoDevice device) {
 
-    }
+        if (isRunning) {
+            return;
+        }
 
-    public void displayVideo() {
+        setRunning(true);
 
-        try (FFmpegFrameGrabber grabber = new FFmpegFrameGrabber("/dev/video4")) {
+        try (FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(device.getPath())) {
             grabber.setFormat("v4l2");
             grabber.setOption("input_format", "yuv420p");
-            grabber.setOption("rtbufsize", "64M");
-            grabber.setFrameRate(30);
+            grabber.setOption("rtbufsize", "1M");
+            grabber.setFrameRate(0);
             grabber.setImageWidth(VIDEO_WIDTH);
             grabber.setImageHeight(VIDEO_HEIGHT);
+            grabber.setOption("fflags", "nobuffer");
+            grabber.setOption("flags", "low_delay");
+            grabber.setOption("hwaccel", "auto");
 
 
             grabber.start();
@@ -61,6 +61,45 @@ public class Video {
         }
     }
 
+    public void detectVideoSources() {
+        String[] command = new String[] {};
+
+        if (getOperatingSystem().equals("Windows")) {
+        } else if (getOperatingSystem().equals("Linux")) {
+            command = new String[] {"v4l2-ctl", "--list-devices"};
+        } else if (getOperatingSystem().equals("Mac")) {
+
+        }
+
+        try {
+            Process process = new ProcessBuilder(command)
+                    .redirectErrorStream(true)
+                    .start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            String curName = null;
+            if (getOperatingSystem().equals("Linux")) {
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (!line.isEmpty()) {
+                        if (!line.startsWith("/dev/video")) {
+                            curName = line;
+                        } else if (curName != null) {
+                            videoDevices.add(new VideoDevice(curName, line));
+                            curName = null;
+                        }
+                    }
+                }
+            }
+
+
+            process.waitFor();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void main(String[] args) {
     }
 
@@ -70,5 +109,17 @@ public class Video {
 
     public void setRunning(boolean running) {
         isRunning = running;
+    }
+
+    public void setOperatingSystem(String operatingSystem) {
+        this.operatingSystem = operatingSystem;
+    }
+
+    public String getOperatingSystem() {
+        return operatingSystem;
+    }
+
+    public ArrayList<VideoDevice> getVideoDevices() {
+        return videoDevices;
     }
 }
