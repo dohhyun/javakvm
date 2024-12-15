@@ -7,6 +7,6 @@ module com.example.javacapturecard {
     requires javafx.swing;
     requires org.bytedeco.ffmpeg;
 
-    opens com.javacapturecard.app to javafx.fxml;
-    exports com.javacapturecard.app;
+    opens javacapturecard.app to javafx.fxml;
+    exports javacapturecard.app;
 }

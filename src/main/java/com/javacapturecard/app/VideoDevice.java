@@ -1,4 +1,4 @@
-package com.javacapturecard.app;
+package javacapturecard.app;
 
 public class VideoDevice {
     private String name;

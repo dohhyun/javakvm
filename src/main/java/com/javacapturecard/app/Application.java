@@ -1,4 +1,4 @@
-package com.javacapturecard.app;
+package javacapturecard.app;
 
 import com.fazecast.jSerialComm.SerialPort;
 import javafx.collections.FXCollections;
@@ -29,25 +29,26 @@ public class Application extends javafx.application.Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        CH9329 connection = new CH9329();
         Video video = new Video();
 
         String os = System.getProperty("os.name").toLowerCase();
         if (os.contains("windows")) {
-            video.setOperatingSystem("Windows");
+            video.setOperatingSystem(OperatingSystem.WINDOWS);
 
         } else if (os.contains("nux")) {
-            video.setOperatingSystem("Linux");
+            video.setOperatingSystem(OperatingSystem.LINUX);
 
 
         } else if (os.contains("mac")) {
-            video.setOperatingSystem("Mac");
+            video.setOperatingSystem(OperatingSystem.MAC);
 
         } else {
-            video.setOperatingSystem("Unknown");
+            video.setOperatingSystem(OperatingSystem.UNKNOWN);
             System.err.println("Unsupported operating system: " + os);
             return;
         }
+
+        CH9329 connection = new CH9329(video.getOperatingSystem());
 
         stage.setTitle("JavaCaptureCard");
         Group root = new Group();

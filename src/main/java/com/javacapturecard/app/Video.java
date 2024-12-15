@@ -1,4 +1,4 @@
-package com.javacapturecard.app;
+package javacapturecard.app;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -11,7 +11,7 @@ public class Video {
     private boolean isRunning = false;
     private static final int VIDEO_WIDTH = 1280;
     private static final int VIDEO_HEIGHT = 720;
-    private String operatingSystem;
+    private OperatingSystem operatingSystem;
     public ArrayList<VideoDevice> videoDevices = new ArrayList<>();
 
     public void displayVideo(VideoDevice device) {
@@ -64,22 +64,39 @@ public class Video {
     public void detectVideoSources() {
         String[] command = new String[] {};
 
-        if (getOperatingSystem().equals("Windows")) {
-        } else if (getOperatingSystem().equals("Linux")) {
+        if (getOperatingSystem().equals(OperatingSystem.WINDOWS)) {
+            command = new String[] {
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-Command",
+                    "ffmpeg.exe",
+                    "-list_devices"
+                    ,"true"
+                    ,"-f"
+                    ,"dshow"
+                    ,"-i"
+                    ,"dummy"
+                    ,"2>&1"
+                    ,"|"
+                    ,"Select-String"
+                    ,"-Pattern"
+                    ,"'dshow'"
+            };
+        } else if (getOperatingSystem().equals(OperatingSystem.LINUX)) {
             command = new String[] {"v4l2-ctl", "--list-devices"};
-        } else if (getOperatingSystem().equals("Mac")) {
+        } else if (getOperatingSystem().equals(OperatingSystem.MAC)) {
 
         }
-
         try {
-            Process process = new ProcessBuilder(command)
-                    .redirectErrorStream(true)
-                    .start();
+            if (getOperatingSystem().equals(OperatingSystem.LINUX)) {
+                Process process = new ProcessBuilder(command)
+                        .redirectErrorStream(true)
+                        .start();
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            String curName = null;
-            if (getOperatingSystem().equals("Linux")) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                String curName = null;
+
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
                     if (!line.isEmpty()) {
@@ -91,10 +108,49 @@ public class Video {
                         }
                     }
                 }
+                process.waitFor();
+
+            } else if (getOperatingSystem().equals(OperatingSystem.WINDOWS)) {
+                Process process = new ProcessBuilder(command)
+                        .redirectErrorStream(true)
+                        .start();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                String lastDeviceName = null;
+
+                System.out.println("Video Devices Found:");
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (!line.isEmpty()) {
+                        System.out.println(line);
+                        if (line.contains("(video)")) {
+                            int start = line.indexOf("\"") + 1;
+                            int end = line.lastIndexOf("\"");
+                            if (start > 0 && end > start) {
+                                lastDeviceName = line.substring(start,end);
+                            }
+                        }
+
+                        if (line.contains("Alternative name") && lastDeviceName != null) {
+                            int start = line.indexOf("@device_pnp_");
+                            if (start > 0) {
+                                String devicePath = line.substring(start).trim();
+                                System.out.println("Adding Device: " + lastDeviceName + " with Path: " + devicePath);
+                                videoDevices.add(new VideoDevice(lastDeviceName, devicePath));
+                                lastDeviceName = null;
+                            }
+                        }
+
+                    }
+                }
+                process.waitFor();
+
+            } else if (getOperatingSystem().equals(OperatingSystem.MAC)) {
+
+            } else {
+                return;
             }
-
-
-            process.waitFor();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -111,11 +167,11 @@ public class Video {
         isRunning = running;
     }
 
-    public void setOperatingSystem(String operatingSystem) {
+    public void setOperatingSystem(OperatingSystem operatingSystem) {
         this.operatingSystem = operatingSystem;
     }
 
-    public String getOperatingSystem() {
+    public OperatingSystem getOperatingSystem() {
         return operatingSystem;
     }
 

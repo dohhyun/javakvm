@@ -2,12 +2,13 @@
  * Class is inspired from https://github.com/SmallCodeNote/CH9329-109KeyClass & https://github.com/sipper69/Control3/
  */
 
-package com.javacapturecard.app;
+package javacapturecard.app;
 
 import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortDataListener;
 import com.fazecast.jSerialComm.SerialPortEvent;
 
+import java.io.LineNumberReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,38 +22,35 @@ public class CH9329 {
     public int yRes;
     public SerialPort serialPort;
     public boolean detectConnection = false;
-    public String operating_system;
-
     public byte CHIP_VERSION;
     public byte CHIP_STATUS;
     public boolean NUM_LOCK;
     public boolean CAPS_LOCK;
     public boolean SCROLL_LOCK;
+    OperatingSystem operatingSystem;
 
 
     Map<Byte, Byte> keyMap;
     Map<mediaKeys, byte[]> mediaKeyMap;
     
 
-    public CH9329() {
-        this(1920,1080,9600);
+    public CH9329(OperatingSystem operatingSystem) {
+        this(1920,1080,9600, operatingSystem);
     }
 
-    public CH9329(int xRes, int yRes, int baudRate) {
+    public CH9329(int xRes, int yRes, int baudRate, OperatingSystem operatingSystem) {
         this.xRes = xRes;
         this.yRes = yRes;
         this.baudRate = baudRate;
+        this.operatingSystem = operatingSystem;
 
-        operating_system = System.getProperty("os.name");
-        System.out.println("Operating System: " + operating_system);
-        System.out.println("Checking Ports...");
         // check for operating system
-        if (operating_system.contains("win")) {
+        if (operatingSystem.equals(OperatingSystem.WINDOWS)) {
+            this.portName = "COM44";
+        } else if (operatingSystem.equals(OperatingSystem.MAC)) {
 
-        } else if (operating_system.contains("mac")) {
-
-        } else if (operating_system.contains("nux")) {
-            this.portName = "ttyS4";
+        } else if (operatingSystem.equals(OperatingSystem.LINUX)) {
+            this.portName = "ttyS44";
         }
 
 
@@ -371,17 +369,5 @@ public class CH9329 {
     }
 
     public static void main(String[] args) {
-        CH9329 ch9329 = new CH9329();
-
-        SerialPort[] ports = SerialPort.getCommPorts();
-        for (SerialPort port : ports) {
-            String portDescription = port.getDescriptivePortName().toLowerCase();
-            System.out.println("Checking port: " + port.getSystemPortName() + " - " + portDescription);
-//            System.out.println(port.getSystemPortName());
-            // Check for device-specific keywords or identifiers in the port description
-            if (portDescription.contains("ch9329") || portDescription.contains("tty")) {
-                System.out.println(port.getSystemPortName());
-            }
-        }
     }
 }
