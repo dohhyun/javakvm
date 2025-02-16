@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
+import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacv.*;
 
 
@@ -21,18 +22,30 @@ public class Video {
         }
 
         setRunning(true);
-
-        try (FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(device.getPath())) {
-            grabber.setFormat("v4l2");
-            grabber.setOption("input_format", "yuv420p");
-            grabber.setOption("rtbufsize", "1M");
-            grabber.setFrameRate(0);
+        String dp = "video=" + device.getPath();
+        System.out.println("DEVICE IS: " + dp);
+        try (FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(dp)) {
             grabber.setImageWidth(VIDEO_WIDTH);
             grabber.setImageHeight(VIDEO_HEIGHT);
-            grabber.setOption("fflags", "nobuffer");
-            grabber.setOption("flags", "low_delay");
-            grabber.setOption("hwaccel", "auto");
+            grabber.setFrameRate(60);
 
+            if (operatingSystem == OperatingSystem.LINUX) {
+                grabber.setFormat("v4l2");
+                grabber.setOption("input_format", "yuv420p");
+                grabber.setOption("rtbufsize", "512M");
+                grabber.setOption("fflags", "nobuffer");
+                grabber.setOption("flags", "low_delay");
+                grabber.setOption("hwaccel", "auto");
+
+            } else if (operatingSystem == OperatingSystem.WINDOWS) {
+                grabber.setFormat("dshow");
+                grabber.setOption("input_format", "yuyv422");
+                grabber.setOption("rtbufsize", "512M");  // Increase buffer size for smoother capture
+                grabber.setOption("fflags", "nobuffer");
+                grabber.setOption("flags", "low_delay");
+                grabber.setOption("threads", "0");
+                grabber.setOption("preset", "ultrafast");
+            }
 
             grabber.start();
 
@@ -120,6 +133,7 @@ public class Video {
                 String lastDeviceName = null;
 
                 System.out.println("Video Devices Found:");
+
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
                     if (!line.isEmpty()) {
@@ -132,18 +146,17 @@ public class Video {
                             }
                         }
 
-                        if (line.contains("Alternative name") && lastDeviceName != null) {
+                        if (line.contains("device_pnp_") && lastDeviceName != null) {
                             int start = line.indexOf("@device_pnp_");
                             if (start > 0) {
-                                String devicePath = line.substring(start).trim();
-                                System.out.println("Adding Device: " + lastDeviceName + " with Path: " + devicePath);
+                                String devicePath = line.substring(start, line.length()-1).trim();
                                 videoDevices.add(new VideoDevice(lastDeviceName, devicePath));
                                 lastDeviceName = null;
                             }
                         }
-
                     }
                 }
+                System.out.println(videoDevices);
                 process.waitFor();
 
             } else if (getOperatingSystem().equals(OperatingSystem.MAC)) {

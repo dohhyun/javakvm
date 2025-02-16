@@ -27,6 +27,9 @@ public class VideoDevice {
 
     @Override
     public String toString() {
-        return name;
+        return "VideoDevice{" +
+                "name='" + name + '\'' +
+                ", path='" + path + '\'' +
+                '}';
     }
 }
